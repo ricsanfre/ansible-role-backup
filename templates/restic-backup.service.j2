@@ -12,6 +12,10 @@ CPUQuota={{ 25 * ansible_processor_vcpus }}%
 
 EnvironmentFile={{ restic_service_envfile }}
 
+# Check whether the repository has been initialized. If not initialize it.
+ExecStartPre=/bin/bash -c "if [ -z \"$({{ restic_path }} {{ restic_flags }} cat config)\" ] 2>/dev/null; then echo \"Repo $RESTIC_REPOSITORY not initilialized. Initializing it ...\"; {{ restic_path }} {{ restic_flags }} init; fi"
+
+
 {% if restic_check %}
 ExecStartPre={{ restic_path }} {{ restic_flags }} check
 {% endif -%}
