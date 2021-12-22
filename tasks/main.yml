@@ -30,7 +30,7 @@
 
 - name: set restic commands flags
   set_fact:
-    restic_flags: "--caCert {{ restic_ca_dir }}/CA.pem"
+    restic_flags: "--cacert {{ restic_ca_dir }}/CA.pem"
   when: restic_use_ca_cert
 
 - name: Generate restic service envfile
