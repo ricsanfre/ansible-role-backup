@@ -1,0 +1,31 @@
+---
+
+- name: Ensure required packages are installed
+  package:
+    name:
+      - bzip2
+      - pigz
+    state: 'present'
+    update_cache: true
+
+- name: Download restic
+  get_url:
+    url: 'https://github.com/restic/restic/releases/download/v{{ restic_version }}/restic_{{ restic_version }}_linux_{{ go_arch }}.bz2'
+    dest: '/tmp/restic_{{ restic_version }}_linux_{{ go_arch }}.bz2'
+
+- name: Extract restic
+  command: 'bzip2 -d /tmp/restic_{{ restic_version }}_linux_{{ go_arch }}.bz2'
+  args:
+    creates: '/tmp/restic_{{ restic_version }}_linux_{{ go_arch }}'
+
+- name: Install restic
+  copy:
+    remote_src: true
+    src: '/tmp/restic_{{ restic_version }}_linux_{{ go_arch }}'
+    dest: "{{ restic_path }}"
+    mode: 0755
+
+- name: Remove downloaded file
+  file:
+    path: '/tmp/restic_{{ restic_version }}_linux_{{ go_arch }}'
+    state: absent

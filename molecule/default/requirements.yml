@@ -1,0 +1,4 @@
+---
+roles:
+  - name: ricsanfre.minio
+    version: v1.0.5

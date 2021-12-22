@@ -1,0 +1,44 @@
+---
+- name: Converge | Create Minio server
+  hosts: minio
+  become: true
+  gather_facts: true
+  vars:
+    server_hostname: minio.picluster.ricsanfre.com
+    ssl_key_size: 4096
+    ssl_certificate_provider: selfsigned
+
+  pre_tasks:
+    - name: Generate self-signed SSL certificates for minio
+      include_tasks: tasks/generate_selfsigned_cert.yml
+      args:
+        apply:
+          delegate_to: localhost
+          become: false
+    - name: Load tls key and cert
+      set_fact:
+        minio_key: "{{ lookup('file','certificates/' + inventory_hostname + '_private.key') }}"
+        minio_cert: "{{ lookup('file','certificates/' + inventory_hostname + '_public.crt') }}"
+
+  roles:
+    - role: ricsanfre.minio
+      minio_root_user: "miniadmin"
+      minio_root_password: "supers1cret0"
+      minio_enable_tls: true
+      minio_validate_certificate: false
+      minio_buckets:
+        - name: restic
+          policy: read-write
+      minio_users:
+        - name: restic
+          password: supers1cret0
+          buckets_acl:
+            - name: restic
+              policy: read-write
+
+- name: Converge | Configure backup
+  hosts: server
+  become: true
+  gather_facts: true
+  roles:
+    - role: ricsanfre.backup

@@ -1,0 +1,24 @@
+---
+galaxy_info:
+  role_name: backup
+  author: ricsanfre
+  description: Backups to S3 Storage Server
+
+  license: license (MIT)
+
+  min_ansible_version: 2.11
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - xenial
+        - bionic
+
+  galaxy_tags:
+    - system
+    - backup
+    - restic
+    - s3
+
+dependencies: []

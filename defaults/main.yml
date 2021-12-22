@@ -1,0 +1,13 @@
+---
+# force restic install even when it is already installed
+
+restic_force_install: false
+# restic version
+restic_version: 0.12.1
+
+# restic path installation
+restic_path: /usr/local/bin/restic
+
+# restic user
+restic_user: root
+restic_user_home: /root

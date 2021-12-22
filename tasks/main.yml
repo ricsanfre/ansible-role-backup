@@ -1,0 +1,8 @@
+---
+- name: Check if restic is installed
+  stat:
+    path: '{{ restic_path }}'
+  register: restic_binary
+
+- include_tasks: install_restic.yml
+  when: not restic_binary.stat.exists or restic_force_install
