@@ -7,7 +7,40 @@ restic_version: 0.12.1
 
 # restic path installation
 restic_path: /usr/local/bin/restic
+# restic config dir
+restic_etc_dir: /etc/restic
+# restic service env file
+restic_service_envfile: "{{ restic_etc_dir }}/restic.conf"
 
 # restic user
 restic_user: root
-restic_user_home: /root
+restic_group: root
+
+# restic repository
+restic_repository: "s3:https://127.0.0.1:9090/restic"
+restic_aws_access_key_id: restic
+restic_aws_secret_access_key: supers1cret0
+restic_ca_cert: ""
+
+restic_password: mysupers1cret0
+
+# restic backup directories
+restic_backups_dirs:
+  - path: '/etc'
+  - path: '/var/log'
+  - path: '/root'
+    exclude: '--exclude .cache'
+
+# Run restic check as pre backup task
+restic_check: true
+
+# Run restic forget as post backup task (restic forget --keep-within <keep_within>)
+restic_forget: true
+restic_forget_keep_within: 30d
+
+# Run restic prune as post backup tasks
+restic_prune: true
+
+# Backup timer configuration
+restic_systemd_timer_on_calender: '*-*-* 03:00:00'
+restic_systemd_timer_randomized_delay_sec: 0

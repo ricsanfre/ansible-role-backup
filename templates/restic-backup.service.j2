@@ -1,0 +1,29 @@
+[Unit]
+Description=Restic backup
+
+[Service]
+Type=oneshot
+User={{ restic_user }}
+Group={{ restic_group }}
+
+WorkingDirectory=/usr/local/
+
+CPUQuota={{ 25 * ansible_processor_vcpus }}%
+
+EnvironmentFile={{ restic_service_envfile }}
+
+{% if restic_check %}
+ExecStartPre={{ restic_path }} check
+{% endif -%}
+
+{% for dir in restic_backups_dirs %}
+ExecStart={{ restic_path }} backup --verbose {{ dir.path }} {{ dir.exclude if dir.exclude is defined else '' }}
+{% endfor -%}
+
+{% if restic_forget %}
+ExecStartPost={{ restic_path }} forget --keep-within {{ restic_forget_keep_within }}
+{% endif -%}
+
+{% if restic_prune %}
+ExecStartPost={{ restic_path }} prune
+{% endif -%}

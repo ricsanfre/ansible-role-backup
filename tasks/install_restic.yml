@@ -2,9 +2,7 @@
 
 - name: Ensure required packages are installed
   package:
-    name:
-      - bzip2
-      - pigz
+    name: bzip2
     state: 'present'
     update_cache: true
 

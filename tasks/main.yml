@@ -6,3 +6,45 @@
 
 - include_tasks: install_restic.yml
   when: not restic_binary.stat.exists or restic_force_install
+
+- name: Create restic config directory
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ restic_user }}"
+    group: "{{ restic_group }}"
+    mode: 0750
+  with_items:
+    - "{{ restic_etc_dir }}"
+
+- name: Generate restic service envfile
+  template:
+    src: restic.env.j2
+    dest: "{{ restic_service_envfile }}"
+    owner: "{{ restic_user }}"
+    group: "{{ restic_group }}"
+    mode: 0640
+
+- name: Create the Minio server systemd config
+  template:
+    src: restic-backup.service.j2
+    dest: "/etc/systemd/system/restic-backup.service"
+    owner: root
+    group: root
+    mode: 0644
+  notify: systemd reload
+
+- name: Add systemd timer for restic
+  template:
+    src: restic-backup.timer.j2
+    dest: /etc/systemd/system/restic-backup.timer
+    owner: root
+    group: root
+    mode: '0644'
+  notify: systemd reload
+
+- name: Enable and start restic timer
+  systemd:
+    name: restic-backup.timer
+    enabled: true
+    state: started
