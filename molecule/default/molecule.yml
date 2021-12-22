@@ -22,9 +22,18 @@ platforms:
     exposed_ports:
       - 9091/tcp
       - 9092/tcp
-    published_ports:
-      - 0.0.0.0:9091:9091/tcp
-      - 0.0.0.0:9092:9092/tcp
+    docker_networks:
+      - name: internal
+        ipam_config:
+          - subnet: "10.11.0.0/16"
+            gateway: "10.11.0.254"
+    networks:
+      - name: internal
+        ipv4_address: "10.11.0.1"
+
+  # published_ports:
+  #   - 0.0.0.0:9091:9091/tcp
+  #   - 0.0.0.0:9092:9092/tcp
   - name: server
     image: "ricsanfre/docker-${MOLECULE_DISTRO:-ubuntu}-ansible:${MOLECULE_RELEASE:-latest}"
     command: ${MOLECULE_DOCKER_COMMAND:-""}
@@ -36,6 +45,10 @@ platforms:
       - /run/lock
     privileged: true
     pre_build_image: true
+    networks:
+      - name: internal
+        ipv4_address: "10.11.0.2"
+
 provisioner:
   name: ansible
   playbooks:
