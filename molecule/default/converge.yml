@@ -50,9 +50,13 @@
   hosts: server
   become: true
   gather_facts: true
+  pre_tasks:
+    - name: Load tls key and cert
+      set_fact:
+        restic_ca_cert: "{{ lookup('file','certificates/CA.pem') }}"
   roles:
     - role: ricsanfre.backup
       restic_repository: "s3:https://10.11.0.1:9091/restic"
       restic_aws_access_key_id: restic
       restic_aws_secret_access_key: supers1cret0
-      restic_ca_cert: ""
+      restic_use_ca_cert: true

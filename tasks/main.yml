@@ -7,7 +7,7 @@
 - include_tasks: install_restic.yml
   when: not restic_binary.stat.exists or restic_force_install
 
-- name: Create restic config directory
+- name: Create restic directories
   file:
     path: "{{ item }}"
     state: directory
@@ -16,6 +16,22 @@
     mode: 0750
   with_items:
     - "{{ restic_etc_dir }}"
+    - "{{ restic_ca_dir }}"
+
+- name: Copy custom CA cert
+  copy:
+    dest: "{{ restic_ca_dir }}/CA.pem"
+    content: "{{ restic_ca_cert }}"
+    owner: "{{ restic_user }}"
+    group: "{{ restic_group }}"
+    mode: 0644
+  become: true
+  when: restic_use_ca_cert
+
+- name: set restic commands flags
+  set_fact:
+    restic_flags: "--caCert {{ restic_ca_dir }}/CA.pem"
+  when: restic_use_ca_cert
 
 - name: Generate restic service envfile
   template:

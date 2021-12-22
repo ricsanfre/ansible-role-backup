@@ -9,6 +9,9 @@ restic_version: 0.12.1
 restic_path: /usr/local/bin/restic
 # restic config dir
 restic_etc_dir: /etc/restic
+# restic CA dir (--caCert option)
+restic_ca_dir: "{{ restic_etc_dir }}/ssl"
+
 # restic service env file
 restic_service_envfile: "{{ restic_etc_dir }}/restic.conf"
 
@@ -20,6 +23,11 @@ restic_group: root
 restic_repository: "s3:https://127.0.0.1:9090/restic"
 restic_aws_access_key_id: restic
 restic_aws_secret_access_key: supers1cret0
+
+# Use CA SSL certificate to validate connection to S3 storage.
+# Needed when self-signed certificates or custom CA certificates are used
+restic_use_ca_cert: false
+# custom CA certificate content
 restic_ca_cert: ""
 
 restic_password: mysupers1cret0
@@ -30,6 +38,10 @@ restic_backups_dirs:
   - path: '/var/log'
   - path: '/root'
     exclude: '--exclude .cache'
+
+
+# Restic command additional flags
+restic_flags: ""
 
 # Run restic check as pre backup task
 restic_check: true

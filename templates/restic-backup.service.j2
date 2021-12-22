@@ -13,17 +13,17 @@ CPUQuota={{ 25 * ansible_processor_vcpus }}%
 EnvironmentFile={{ restic_service_envfile }}
 
 {% if restic_check %}
-ExecStartPre={{ restic_path }} check
+ExecStartPre={{ restic_path }} {{ restic_flags }} check
 {% endif -%}
 
 {% for dir in restic_backups_dirs %}
-ExecStart={{ restic_path }} backup --verbose {{ dir.path }} {{ dir.exclude if dir.exclude is defined else '' }}
+ExecStart={{ restic_path }} {{ restic_flags }} backup --verbose {{ dir.path }} {{ dir.exclude if dir.exclude is defined else '' }}
 {% endfor -%}
 
 {% if restic_forget %}
-ExecStartPost={{ restic_path }} forget --keep-within {{ restic_forget_keep_within }}
+ExecStartPost={{ restic_path }} {{ restic_flags }} forget --keep-within {{ restic_forget_keep_within }}
 {% endif -%}
 
 {% if restic_prune %}
-ExecStartPost={{ restic_path }} prune
+ExecStartPost={{ restic_path }} {{ restic_flags }} prune
 {% endif -%}
