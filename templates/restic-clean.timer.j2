@@ -1,0 +1,9 @@
+[Unit]
+Description=Restic check and purge
+
+[Timer]
+OnCalendar={{ restic_clean_systemd_timer_on_calender }}
+RandomizedDelaySec={{ restic_clean_systemd_timer_randomized_delay_sec }}
+
+[Install]
+WantedBy=timers.target

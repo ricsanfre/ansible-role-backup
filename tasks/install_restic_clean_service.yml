@@ -1,0 +1,24 @@
+---
+- name: Create the restic-clean systemd config
+  template:
+    src: restic-clean.service.j2
+    dest: "/etc/systemd/system/restic-clean.service"
+    owner: root
+    group: root
+    mode: 0644
+  notify: systemd reload
+
+- name: Add systemd timer for restic-clean
+  template:
+    src: restic-clean.timer.j2
+    dest: /etc/systemd/system/restic-clean.timer
+    owner: root
+    group: root
+    mode: '0644'
+  notify: systemd reload
+
+- name: Enable and start restic timer
+  systemd:
+    name: restic-clean.timer
+    enabled: true
+    state: started

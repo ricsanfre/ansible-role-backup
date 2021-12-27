@@ -1,0 +1,5 @@
+{% for dir in restic_backups_dirs %}
+{% if dir.exclude is defined %}
+{{ dir.exclude }}
+{% endif %}
+{% endfor %}

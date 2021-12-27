@@ -2,8 +2,8 @@
 Description=Restic backup
 
 [Timer]
-OnCalendar={{ restic_systemd_timer_on_calender }}
-RandomizedDelaySec={{ restic_systemd_timer_randomized_delay_sec }}
+OnCalendar={{ restic_backup_systemd_timer_on_calender }}
+RandomizedDelaySec={{ restic_backup_systemd_timer_randomized_delay_sec }}
 
 [Install]
 WantedBy=timers.target
