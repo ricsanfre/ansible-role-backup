@@ -41,6 +41,20 @@
     group: "{{ restic_group }}"
     mode: 0640
 
+- name: Copy restic repo init script
+  template:
+    src: restic_repo_init.sh.j2
+    dest: "{{ restic_etc_dir }}/restic_repo_init.sh"
+    owner: "{{ restic_user }}"
+    group: "{{ restic_group }}"
+    mode: 0755
+
+- name: Initialize restic repo
+  command:
+    cmd: "{{ restic_etc_dir }}/restic_repo_init.sh"
+  register: restic_init
+  changed_when: '"Initializing it...." in restic_init.stdout'
+
 - name: Create the Minio server systemd config
   template:
     src: restic-backup.service.j2
