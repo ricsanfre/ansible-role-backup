@@ -62,10 +62,10 @@ Available variables are listed below along with default values (see `defaults\ma
       restic_ca_cert: "{{ lookup('file','certificates/CA.pem') }}"
   ```
 
-- Directories list to back up
+- Directories list to be backed up
 
   `restic_backup_dirs` is a list of dictionaries. Each item of the list is a directory to  include in the backup
-  Each dictionary item has a `path` and an `exclude` property (which defaults to nothing). The `exclude` property is the literal argument passed to restic when executing the backup (example: `restic backup /root --exclude .cache --exclude .local`).
+  Each dictionary item has a `path` and an `exclude` (which defaults to nothing). The `exclude` property is a list of exclude patterns to be passed as `--exclude` argument passed to restic when executing the backup (example: `restic backup /root --exclude .cache --exclude .ignore`).
 
   ```yml
   # restic backup directories
@@ -73,180 +73,138 @@ Available variables are listed below along with default values (see `defaults\ma
     - path: '/etc'
     - path: '/var/log'
     - path: '/root'
-      exclude: '--exclude .cache' 
+      exclude:
+        - pattern: '.cache'
+        - pattern: '.ignore' 
   ```
 
-### Execute pre and post backup commands
+- Restic additional flags
 
-Execute `restic check` command before executing backup
-```yml
-# Run restic check as pre backup task
-restic_check: true
-```
+  `restic_flags` additional restic commands flags to be included in the execution of all commands. Playbook automatically add --cacert flag if `restic_use_ca_cert` is set to true.
+  
+  ```yml
+  restic_flags: ""
+  ```
 
-Execute `restic forget` and `restic prune` commands after executing the backup for purging old backups
+- Restic logs
+ 
+  `restic_logs` restic scripts log file. 
+  
+  ```yml
+  restic_log: /var/log/restic.log
+  ```
+### Restic repository cleaning tasks
+
+A specific systemd service will be configured to execute checking and purging activities. This service will be independent from the backup service, since it is only needed to be executed from one server and to avoid mutual locking it need to be scheduled differently.
+
+Cleaning systemd service will execute a script containing the following restic commands
+
+- `restic check`
+- `restic forget --keep-within <data_retention_days>`
+- `restic prune`
+
+`restic_clean_service` indicates whether to install or not the restic cleaning service and `restic_forget_keep_within` retention data polocy (`--keep-within` forget parameter)
+
 ```yml
-# Run restic forget as post backup task (restic forget --keep-within <keep_within>)
-restic_forget: true
+restic_clean_service: true
+et as post backup task (restic forget --keep-within <keep_within>)
 restic_forget_keep_within: 30d
-
-# Run restic prune as post backup tasks
-restic_prune: true
 ```
 
-### Sytemd service and timer
+### Sytemd services and timers
 
-A `restic-backup.service` service will be created with all the parameters defined above. The service is of type `oneshot` and will be triggered periodically with `restic-backup.timer`.
+Two systemd services of type `oneshot` will be created that will be triggered periodically with its corresponding systemd timers.
 
-The timer is configurable as follows:
+For executing backup process: `restic-backup.service` and `restic-backup.timer` are created.
+For executing cleaning process: `restic-clean.service` and `restic-clean.timer` are created
 
-- `restic_systemd_timer_on_calender`: defines the `OnCalendar` directive (`*-*-* 03:00:00`)
-- `restic_systemd_timer_randomized_delay_sec`: Delay the timer by a random amount of time between 0 and the specified time value. (`0`)
+The timers are configurable as follows:
+
+- `restic_backup_systemd_timer_on_calender` and `restic_clean_systemd_timer_on_calender`: defines the `OnCalendar` directive (`*-*-* 03:00:00`)
+- `restic_backup_systemd_timer_randomized_delay_sec` and `restic_clean_systemd_timer_randomized_delay_sec`: Delay the timer by a random amount of time between 0 and the specified time value. (`0`)
 
 See the [systemd.timer](https://www.freedesktop.org/software/systemd/man/systemd.timer.html) documentation for more information.
 
-You can see the logs of the backup with `journalctl`.
+You can see the logs of the backup/cleaning with `journalctl`.
 
     journalctl -xefu restic-backup
+    journalctl -xefu restic-clean
 
-The backup process can be also triggered manually running the command
+Logs are also stored in a file indicated by `restic_log`
+
+The backup/cleaning process can be also triggered manually running the command
 
     systemctl start restic-backup
+    systemctl start restic-clean
 
 
 Testing
-------------
+--------
+
+Ansible Playbook based on the configuration creates the scripts that are launched by the systemd services. Those scripts are stored in `restic_etc_dir` (/etc/restic)
+
+- `restic-repo-init.sh`: Script for initializing the restic repo. Executed by ansible playbook once
+- `restic-backup.sh`: script executed by `restic-backup` systemd service
+- `restic-clean.sh`: script executed by `restic-clean` systemd service
+- `restic-wrapper.sh`: restic wrapper script used by the rest of the scripts. This script load the repository variables stored in `/etc/restic/restic.conf` and if necessary pass the '--cacert' parameter to all restic commands.
 
 After installation the backup process can be tested following this procedure:
 
 1) Trigger manually the backup process
 
-    systemctl start restic-backup
+       systemctl start restic-backu
+    
+   Or
+
+       /etc/restic/restic-backup.sh
 
 2) Check logs restic-backup service
 
-    journalctl -u restic-backup
-  
+       journalctl -u restic-backup
+   Or
+
+       tail -f /var/log/restic.log
+
+    
    Output should be like:
 
     ```
-    Dec 22 17:01:59 server systemd[1]: Starting Restic backup...
-    Dec 22 17:01:59 server bash[1887]: Fatal: unable to open config file: Stat: The specified key does not ex
-    ist.
-    Dec 22 17:01:59 server bash[1887]: Is there a repository at the following location?
-    Dec 22 17:01:59 server bash[1887]: s3:https://10.11.0.1:9091/restic
-    Dec 22 17:01:59 server bash[1886]: Repo s3:https://10.11.0.1:9091/restic not initilialized. Initializing
-    it ...
-    Dec 22 17:02:01 server bash[1896]: created restic repository df54412d4c at s3:https://10.11.0.1:9091/rest
-    ic
-    Dec 22 17:02:01 server bash[1896]: Please note that knowledge of your password is required to access
-    Dec 22 17:02:01 server bash[1896]: the repository. Losing your password means that your data is
-    Dec 22 17:02:01 server bash[1896]: irrecoverably lost.
-    Dec 22 17:02:01 server restic[1906]: using temporary cache in /tmp/restic-check-cache-052310176
-    Dec 22 17:02:02 server restic[1906]: create exclusive lock for repository
-    Dec 22 17:02:02 server restic[1906]: load indexes
-    Dec 22 17:02:02 server restic[1906]: check all packs
-    Dec 22 17:02:02 server restic[1906]: check snapshots, trees and blobs
-    Dec 22 17:02:02 server restic[1906]: no errors were found
-    Dec 22 17:02:02 server restic[1906]: [0:00]          0 snapshots
-    Dec 22 17:02:02 server restic[1916]: open repository
-    Dec 22 17:02:02 server restic[1916]: lock repository
-    Dec 22 17:02:03 server restic[1916]: load index files
-    Dec 22 17:02:03 server restic[1916]: no parent snapshot found, will read all files
-    Dec 22 17:02:03 server restic[1916]: start scan on [/etc]
-    Dec 22 17:02:03 server restic[1916]: start backup on [/etc]
-    Dec 22 17:02:03 server restic[1916]: scan finished in 0.262s: 213 files, 536.395 KiB
-    Dec 22 17:02:03 server restic[1916]: Files:         213 new,     0 changed,     0 unmodified
-    Dec 22 17:02:03 server restic[1916]: Dirs:          105 new,     0 changed,     0 unmodified
-    Dec 22 17:02:03 server restic[1916]: Data Blobs:    198 new
-    Dec 22 17:02:03 server restic[1916]: Tree Blobs:     79 new
-    Dec 22 17:02:03 server restic[1916]: Added to the repo: 725.919 KiB
-    Dec 22 17:02:03 server restic[1916]: processed 213 files, 536.395 KiB in 0:00
-    Dec 22 17:02:03 server restic[1916]: snapshot 0047e386 saved
-    Dec 22 17:02:03 server restic[1926]: open repository
-    Dec 22 17:02:03 server restic[1926]: lock repository
-    Dec 22 17:02:03 server restic[1926]: load index files
-    Dec 22 17:02:03 server restic[1926]: no parent snapshot found, will read all files
-    Dec 22 17:02:03 server restic[1926]: start scan on [/var/log]
-    Dec 22 17:02:03 server restic[1926]: start backup on [/var/log]
-    Dec 22 17:02:03 server restic[1926]: scan finished in 0.239s: 10 files, 345.640 KiB
-    Dec 22 17:02:03 server restic[1926]: Files:          10 new,     0 changed,     0 unmodified
-    Dec 22 17:02:03 server restic[1926]: Dirs:            5 new,     0 changed,     0 unmodified
-    Dec 22 17:02:03 server restic[1926]: Data Blobs:      8 new
-    Dec 22 17:02:03 server restic[1926]: Tree Blobs:      4 new
-    Dec 22 17:02:03 server restic[1926]: Added to the repo: 350.619 KiB
-    Dec 22 17:02:03 server restic[1926]: processed 10 files, 345.640 KiB in 0:00
-    Dec 22 17:02:03 server restic[1926]: snapshot 285d0864 saved
-    Dec 22 17:02:03 server restic[1936]: open repository
-    Dec 22 17:02:04 server restic[1936]: lock repository
-    Dec 22 17:02:04 server restic[1936]: load index files
-    Dec 22 17:02:04 server restic[1936]: no parent snapshot found, will read all files
-    Dec 22 17:02:04 server restic[1936]: start scan on [/root]
-    Dec 22 17:02:04 server restic[1936]: start backup on [/root]
-    Dec 22 17:02:04 server restic[1936]: scan finished in 0.233s: 2 files, 3.190 KiB
-    Dec 22 17:02:04 server restic[1936]: Files:           2 new,     0 changed,     0 unmodified
-    Dec 22 17:02:04 server restic[1936]: Dirs:            3 new,     0 changed,     0 unmodified
-    Dec 22 17:02:04 server restic[1936]: Data Blobs:      2 new
-    Dec 22 17:02:04 server restic[1936]: Tree Blobs:      3 new
-    Dec 22 17:02:04 server restic[1936]: Added to the repo: 4.852 KiB
-    Dec 22 17:02:04 server restic[1936]: processed 2 files, 3.190 KiB in 0:00
-    Dec 22 17:02:04 server restic[1936]: snapshot 7d55b179 saved
-    Dec 22 17:02:05 server restic[1946]: Applying Policy: keep all snapshots within 30d of the newest
-    Dec 22 17:02:05 server restic[1946]: keep 1 snapshots:
-    Dec 22 17:02:05 server restic[1946]: ID        Time                 Host        Tags        Reasons     P
-    aths
-    Dec 22 17:02:05 server restic[1946]: --------------------------------------------------------------------
-    ----
-    Dec 22 17:02:05 server restic[1946]: 7d55b179  2021-12-22 17:02:03  server                  within 30d  /
-    root
-    Dec 22 17:02:05 server restic[1946]: --------------------------------------------------------------------
-    ----
-    Dec 22 17:02:05 server restic[1946]: 1 snapshots
-    Dec 22 17:02:05 server restic[1946]: keep 1 snapshots:
-    Dec 22 17:02:05 server restic[1946]: ID        Time                 Host        Tags        Reasons     P
-    aths
-    Dec 22 17:02:05 server restic[1946]: --------------------------------------------------------------------
-    ----
-    Dec 22 17:02:05 server restic[1946]: 0047e386  2021-12-22 17:02:02  server                  within 30d  /
-    etc
-    Dec 22 17:02:05 server restic[1946]: --------------------------------------------------------------------
-    ----
-    Dec 22 17:02:05 server restic[1946]: 1 snapshots
-    Dec 22 17:02:05 server restic[1946]: keep 1 snapshots:
-    Dec 22 17:02:05 server restic[1946]: ID        Time                 Host        Tags        Reasons     P
-    aths
-    Dec 22 17:02:05 server restic[1946]: --------------------------------------------------------------------
-    -------
-    Dec 22 17:02:05 server restic[1946]: 285d0864  2021-12-22 17:02:03  server                  within 30d  /
-    var/log
-    Dec 22 17:02:05 server restic[1946]: --------------------------------------------------------------------
-    -------
-    Dec 22 17:02:05 server restic[1946]: 1 snapshots
-    Dec 22 17:02:06 server restic[1955]: loading indexes...
-    Dec 22 17:02:06 server restic[1955]: loading all snapshots...
-    Dec 22 17:02:06 server restic[1955]: finding data that is still in use for 3 snapshots
-    Dec 22 17:02:06 server restic[1955]: [0:00] 100.00%  3 / 3 snapshots
-    Dec 22 17:02:06 server restic[1955]: searching used packs...
-    Dec 22 17:02:06 server restic[1955]: collecting packs for deletion and repacking
-    Dec 22 17:02:06 server restic[1955]: [0:00] 100.00%  8 / 8 packs processed
-    Dec 22 17:02:06 server restic[1955]: to repack:            0 blobs / 0 B
-    Dec 22 17:02:06 server restic[1955]: this removes          0 blobs / 0 B
-    Dec 22 17:02:06 server restic[1955]: to delete:            0 blobs / 0 B
-    Dec 22 17:02:06 server restic[1955]: total prune:          0 blobs / 0 B
-    Dec 22 17:02:06 server restic[1955]: remaining:          294 blobs / 1.065 MiB
-    Dec 22 17:02:06 server restic[1955]: unused size after prune: 0 B (0.00% of remaining size)
-    Dec 22 17:02:06 server restic[1955]: done
-    Dec 22 17:02:06 server systemd[1]: restic-backup.service: Succeeded.
-    Dec 22 17:02:06 server systemd[1]: Finished Restic backup.
+    -- Logs begin at Tue 2021-12-28 10:38:54 UTC, end at Tue 2021-12-28 10:53:57 UTC. --
+    Dec 28 10:50:01 server systemd[1]: Starting Restic backup...
+    Dec 28 10:50:01 server restic-backup.sh[2751]: Dec 28 2021 10:50:01 UTC: restic-backup started
+    Dec 28 10:50:01 server restic-backup.sh[2755]: -------------------------------------------------------------------
+    ------------
+    Dec 28 10:50:02 server restic-backup.sh[2757]: no parent snapshot found, will read all files
+    Dec 28 10:50:02 server restic-backup.sh[2757]: Files:         219 new,     0 changed,     0 unmodified
+    Dec 28 10:50:02 server restic-backup.sh[2757]: Dirs:          105 new,     0 changed,     0 unmodified
+    Dec 28 10:50:02 server restic-backup.sh[2757]: Added to the repo: 730.675 KiB
+    Dec 28 10:50:02 server restic-backup.sh[2757]: processed 219 files, 538.536 KiB in 0:00
+    Dec 28 10:50:02 server restic-backup.sh[2757]: snapshot 8bc0e3ea saved
+    Dec 28 10:50:03 server restic-backup.sh[2769]: no parent snapshot found, will read all files
+    Dec 28 10:50:03 server restic-backup.sh[2769]: Files:          11 new,     0 changed,     0 unmodified
+    Dec 28 10:50:03 server restic-backup.sh[2769]: Dirs:            5 new,     0 changed,     0 unmodified
+    Dec 28 10:50:03 server restic-backup.sh[2769]: Added to the repo: 351.917 KiB
+    Dec 28 10:50:03 server restic-backup.sh[2769]: processed 11 files, 346.573 KiB in 0:00
+    Dec 28 10:50:03 server restic-backup.sh[2769]: snapshot bd7c3e4f saved
+    Dec 28 10:50:03 server restic-backup.sh[2781]: no parent snapshot found, will read all files
+    Dec 28 10:50:03 server restic-backup.sh[2781]: Files:           2 new,     0 changed,     0 unmodified
+    Dec 28 10:50:03 server restic-backup.sh[2781]: Dirs:            3 new,     0 changed,     0 unmodified
+    Dec 28 10:50:03 server restic-backup.sh[2781]: Added to the repo: 4.852 KiB
+    Dec 28 10:50:03 server restic-backup.sh[2781]: processed 2 files, 3.190 KiB in 0:00
+    Dec 28 10:50:03 server restic-backup.sh[2781]: snapshot dc362721 saved
+    Dec 28 10:50:03 server restic-backup.sh[2792]: -------------------------------------------------------------------
+    ------------
+    Dec 28 10:50:03 server restic-backup.sh[2794]: Dec 28 2021 10:50:03 UTC: restic.sh finished
+    Dec 28 10:50:03 server systemd[1]: restic-backup.service: Succeeded.
+    Dec 28 10:50:03 server systemd[1]: Finished Restic backup.
+    
     ```
-2) Check the restic snapshots
+3) Check the restic snapshots
 
-   - Load environment variables into shell console
-
-         export $(grep -v '^#' /etc/restic/restic.conf | xargs -d '\n')
    - List backup snapshots
 
-         restic --cacert /etc/restic/ssl/CA.pem snapshots
+         /etc/restic/restic_wrapper.sh snapshots
+      
       Output should be like:
       
       ```
@@ -259,7 +217,89 @@ After installation the backup process can be tested following this procedure:
       ---------------------------------------------------------------
       3 snapshots
       ```    
-     
+4) Trigger manually the clean process
+
+       systemctl start restic-clean
+    
+   Or
+
+       /etc/restic/restic-repo-clean.sh
+
+5) Check logs restic-clean service
+
+       journalctl -u restic-clean
+   Or
+
+       tail -f /var/log/restic.log
+   
+   Output is like:
+
+    ```
+    -- Logs begin at Tue 2021-12-28 10:38:54 UTC, end at Tue 2021-12-28 10:53:57 UTC. --
+    Dec 28 10:52:20 server systemd[1]: Starting Restic check and purge...
+    Dec 28 10:52:20 server restic-repo-clean.sh[2807]: Dec 28 2021 10:52:20 UTC: restic-repo-clean started
+    Dec 28 10:52:20 server restic-repo-clean.sh[2811]: ---------------------------------------------------------------
+    ----------------
+    Dec 28 10:52:20 server restic-repo-clean.sh[2813]: using temporary cache in /tmp/restic-check-cache-652678859
+    Dec 28 10:52:21 server restic-repo-clean.sh[2813]: create exclusive lock for repository
+    Dec 28 10:52:21 server restic-repo-clean.sh[2813]: load indexes
+    Dec 28 10:52:21 server restic-repo-clean.sh[2813]: check all packs
+    Dec 28 10:52:21 server restic-repo-clean.sh[2813]: check snapshots, trees and blobs
+    Dec 28 10:52:21 server restic-repo-clean.sh[2813]: no errors were found
+    Dec 28 10:52:21 server restic-repo-clean.sh[2813]: [0:00] 100.00%  3 / 3 snapshots
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: Applying Policy: keep all snapshots within 30d of the newest
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: keep 1 snapshots:
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: ID        Time                 Host        Tags        Reasons
+        Paths
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: ---------------------------------------------------------------
+    ---------
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: dc362721  2021-12-28 10:50:03  server                  within 3
+    0d  /root
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: ---------------------------------------------------------------
+    ---------
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: 1 snapshots
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: keep 1 snapshots:
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: ID        Time                 Host        Tags        Reasons
+        Paths
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: ---------------------------------------------------------------
+    ---------
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: 8bc0e3ea  2021-12-28 10:50:01  server                  within 3
+    0d  /etc
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: ---------------------------------------------------------------
+    ---------
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: 1 snapshots
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: keep 1 snapshots:
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: ID        Time                 Host        Tags        Reasons
+        Paths
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: ---------------------------------------------------------------
+    ------------
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: bd7c3e4f  2021-12-28 10:50:02  server                  within 3
+    0d  /var/log
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: ---------------------------------------------------------------
+    ------------
+    Dec 28 10:52:22 server restic-repo-clean.sh[2825]: 1 snapshots
+    Dec 28 10:52:22 server restic-repo-clean.sh[2836]: loading indexes...
+    Dec 28 10:52:22 server restic-repo-clean.sh[2836]: loading all snapshots...
+    Dec 28 10:52:22 server restic-repo-clean.sh[2836]: finding data that is still in use for 3 snapshots
+    Dec 28 10:52:22 server restic-repo-clean.sh[2836]: [0:00] 100.00%  3 / 3 snapshots
+    Dec 28 10:52:22 server restic-repo-clean.sh[2836]: searching used packs...
+    Dec 28 10:52:22 server restic-repo-clean.sh[2836]: collecting packs for deletion and repacking
+    Dec 28 10:52:22 server restic-repo-clean.sh[2836]: [0:00] 100.00%  8 / 8 packs processed
+    Dec 28 10:52:22 server restic-repo-clean.sh[2836]: to repack:            0 blobs / 0 B
+    Dec 28 10:52:22 server restic-repo-clean.sh[2836]: this removes          0 blobs / 0 B
+    Dec 28 10:52:22 server restic-repo-clean.sh[2836]: to delete:            0 blobs / 0 B
+    Dec 28 10:52:22 server restic-repo-clean.sh[2836]: total prune:          0 blobs / 0 B
+    Dec 28 10:52:22 server restic-repo-clean.sh[2836]: remaining:          301 blobs / 1.071 MiB
+    Dec 28 10:52:22 server restic-repo-clean.sh[2836]: unused size after prune: 0 B (0.00% of remaining size)
+    Dec 28 10:52:22 server restic-repo-clean.sh[2836]: done
+    Dec 28 10:52:22 server restic-repo-clean.sh[2847]: ---------------------------------------------------------------
+    ----------------
+    Dec 28 10:52:22 server restic-repo-clean.sh[2849]: Dec 28 2021 10:52:22 UTC: restic-repo-clean finished
+    Dec 28 10:52:22 server systemd[1]: restic-clean.service: Succeeded.
+    Dec 28 10:52:22 server systemd[1]: Finished Restic check and purge.
+    ```
+  
+
 Dependencies
 ------------
 
@@ -289,7 +329,9 @@ The following playbook install restic, and schedule backup of `/etc`, `/var/log`
         - path: '/etc'
         - path: '/var/log'
         - path: '/root'
-          exclude: '--exclude .cache'
+          exclude:
+            - pattern: '.cache'
+            - pattern: '.ignore'
 ```
 
 
@@ -301,6 +343,11 @@ MIT
 Author Information
 ------------------
 
-Created by Ricardo Sanchez (ricsanfre) taking main idea of using systemd timer as a backup schedurle and base code from the repository (https://github.com/angristan/ansible-restic) by [angristan](https://github.com/angristan).
-Code updated to work properly with S3 repository (i.e. Minio), solving some issues with the initialization of the repo and the use of custom CA/selfsigned certificates in the communication.
-Additionally restic installation process is architecture agnostic (supporting x86 and ARM architectures). Original code supported only x86 architectures.
+Created by Ricardo Sanchez (ricsanfre) highly inspired by this [project](https://github.com/angristan/ansible-restic) by [angristan](https://github.com/angristan).
+
+Code completely refactored and updated to work properly with S3 repository (i.e. Minio) and with ARM architecture.
+
+Changes and improvements:
+- Restic backup and purge activities are splitted into two different systemd services that can be scheduled independetly to avoid locking issues.
+- S3 backend issues solved: repo initialization  and the use of custom CA/selfsigned certificates in the communication.
+- Restic installation installation process is architecture agnostic (supporting x86 and ARM architectures). Original code supported only x86 architectures.
