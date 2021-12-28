@@ -40,8 +40,6 @@ $RESTIC_FLAGS \
 --files-from $INCLUDE \
 | tee -a $LOG
 
-# Check the repository for errors
-# $RESTIC check | tee -a $LOG
 
 # Add timestamp
 echo "-------------------------------------------------------------------------------" | tee -a $LOG

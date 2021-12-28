@@ -4,95 +4,17 @@
     path: '{{ restic_path }}'
   register: restic_binary
 
-- include_tasks: install_restic.yml
+- name: Install restic
+  include_tasks: install_restic.yml
   when: not restic_binary.stat.exists or restic_force_install
 
-- name: Create restic directories
-  file:
-    path: "{{ item }}"
-    state: directory
-    owner: "{{ restic_user }}"
-    group: "{{ restic_group }}"
-    mode: 0750
-  with_items:
-    - "{{ restic_etc_dir }}"
-    - "{{ restic_ca_dir }}"
+- name: Configure restic backup
+  include_tasks: configure_restic.yml
+  when: not restic_binary.stat.exists or restic_force_install
 
-- name: Copy custom CA cert
-  copy:
-    dest: "{{ restic_ca_dir }}/CA.pem"
-    content: "{{ restic_ca_cert }}"
-    owner: "{{ restic_user }}"
-    group: "{{ restic_group }}"
-    mode: 0644
-  become: true
-  when: restic_use_ca_cert
+- name: Install restic systemd backup service
+  include_tasks: install_restic_backup_service.yml
 
-- name: set restic commands flags
-  set_fact:
-    restic_flags: "{{ restic_flags  + ' --cacert ' + restic_ca_dir + '/CA.pem' }}"
-  when: restic_use_ca_cert
-
-- name: Copy restic configuration
-  template:
-    src: "{{ item.template }}"
-    dest: "{{ item.dest }}"
-    owner: "{{ restic_user }}"
-    group: "{{ restic_group }}"
-    mode: 0644
-  with_items:
-    - template: restic.env.j2
-      dest: "{{ restic_service_envfile }}"
-    - template: restic-include.txt.j2
-      dest: "{{ restic_include_file }}"
-    - template: restic-exclude.txt.j2
-      dest: "{{ restic_exclude_file }}"
-
-- name: Copy restic scripts
-  template:
-    src: "{{ item.template }}"
-    dest: "{{ item.dest }}"
-    owner: "{{ restic_user }}"
-    group: "{{ restic_group }}"
-    mode: 0755
-  with_items:
-    - template: restic-repo-init.sh.j2
-      dest: "{{ restic_etc_dir }}/restic-repo-init.sh"
-    - template: restic-backup.sh.j2
-      dest: "{{ restic_etc_dir }}/restic-backup.sh"
-    - template: restic-repo-clean.sh.j2
-      dest: "{{ restic_etc_dir }}/restic-repo-clean.sh"
-
-- name: Initialize restic repo
-  command:
-    cmd: "{{ restic_etc_dir }}/restic-repo-init.sh"
-  register: restic_init
-  changed_when: '"Initializing it...." in restic_init.stdout'
-
-- name: Create the Minio server systemd config
-  template:
-    src: restic-backup.service.j2
-    dest: "/etc/systemd/system/restic-backup.service"
-    owner: root
-    group: root
-    mode: 0644
-  notify: systemd reload
-
-- name: Add systemd timer for restic
-  template:
-    src: restic-backup.timer.j2
-    dest: /etc/systemd/system/restic-backup.timer
-    owner: root
-    group: root
-    mode: '0644'
-  notify: systemd reload
-
-- name: Enable and start restic timer
-  systemd:
-    name: restic-backup.timer
-    enabled: true
-    state: started
-
-- name: Initialize restic repo check and purge
+- name: Install restic systemd clean service
   include_tasks: install_restic_clean_service.yml
   when: restic_clean_service

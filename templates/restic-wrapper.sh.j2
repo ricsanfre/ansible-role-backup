@@ -1,0 +1,27 @@
+#!/bin/bash
+
+#restic-wrapper script
+
+#Define load environment variables file function
+envup() {
+  local file=$1
+
+  if [ -f $file ]; then
+    set -a
+    source $file
+    set +a
+  else
+    echo "No $file file found" 1>&2
+    return 1
+  fi
+}
+
+RESTIC={{ restic_path }}
+
+RESTIC_FLAGS="{{ restic_flags }}"
+
+# Load restic repository config file
+envup {{ restic_service_envfile }}
+
+# Execute restic command
+$RESTIC $RESTIC_FLAGS $@
