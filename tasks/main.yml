@@ -10,7 +10,6 @@
 
 - name: Configure restic backup
   include_tasks: configure_restic.yml
-  when: not restic_binary.stat.exists or restic_force_install
 
 - name: Install restic systemd backup service
   include_tasks: install_restic_backup_service.yml

@@ -1,41 +1,24 @@
 #!/bin/bash
 
-envup() {
-  local file=$1
-
-  if [ -f $file ]; then
-    set -a
-    source $file
-    set +a
-  else
-    echo "No $file file found" 1>&2
-    return 1
-  fi
-}
-
 #Define a timestamp function
 timestamp() {
 date "+%b %d %Y %T %Z"
 }
 
-RESTIC={{ restic_path }}
+RESTIC_WRAPPER={{ restic_etc_dir }}/restic-wrapper.sh
 LOG={{ restic_log }}
-RESTIC_FLAGS="{{ restic_flags }}"
-
-# Load restic repository config file
-envup {{ restic_service_envfile }}
 
 # Add timestamp
 echo "$(timestamp): restic-repo-init started" | tee -a $LOG
 echo "-------------------------------------------------------------------------------" | tee -a $LOG
 
-check=`$RESTIC $RESTIC_FLAGS cat config 2>/dev/null`
+check=`$RESTIC_WRAPPER cat config 2>/dev/null`
 
 if [ -z "$check" ]; then
   echo "Repo $RESTIC_REPOSITORY is not initilized. Initializing it...." | tee -a $LOG
-  $RESTIC $RESTIC_FLAGS init | tee -a $LOG
+  $RESTIC_WRAPPER init | tee -a $LOG
 else
-  echo "Repor $RESTIC_REPOSITORY already initialized" | tee -a $LOG
+  echo "Repo $RESTIC_REPOSITORY already initialized" | tee -a $LOG
 fi
 
 # Add timestamp

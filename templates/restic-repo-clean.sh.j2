@@ -1,45 +1,25 @@
 #!/bin/bash
 
-#Define load environment variables file function
-envup() {
-  local file=$1
-
-  if [ -f $file ]; then
-    set -a
-    source $file
-    set +a
-  else
-    echo "No $file file found" 1>&2
-    return 1
-  fi
-}
-
 #Define a timestamp function
 timestamp() {
 date "+%b %d %Y %T %Z"
 }
 
-RESTIC={{ restic_path }}
-
+RESTIC_WRAPPER={{ restic_etc_dir }}/restic-wrapper.sh
 LOG={{ restic_log }}
-RESTIC_FLAGS="{{ restic_flags }}"
-
-# Load restic repository config file
-envup {{ restic_service_envfile }}
-
 
 # Add timestamp
 echo "$(timestamp): restic-repo-clean started" | tee -a $LOG
 echo "-------------------------------------------------------------------------------" | tee -a $LOG
 
 # Check repository for errors
-$RESTIC check $RESTIC_FLAGS | tee -a $LOG
+$RESTIC_WRAPPER check | tee -a $LOG
 
 # Forget old snapshots
-$RESTIC $RESTIC_FLAGS forget --keep-within {{ restic_forget_keep_within }} | tee -a $LOG
+$RESTIC_WRAPPER forget --keep-within {{ restic_forget_keep_within }} | tee -a $LOG
 
 # Prune
-$RESTIC $RESTIC_FLAGS prune | tee -a $LOG
+$RESTIC_WRAPPER prune | tee -a $LOG
 
 # Add timestamp
 echo "-------------------------------------------------------------------------------" | tee -a $LOG
