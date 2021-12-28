@@ -39,7 +39,9 @@ restic_backups_dirs:
   - path: '/etc'
   - path: '/var/log'
   - path: '/root'
-    exclude: '.cache'
+    exclude:
+      - pattern: '.cache'
+      - pattern: '.ignore'
 
 # Restic command additional flags
 restic_flags: ""

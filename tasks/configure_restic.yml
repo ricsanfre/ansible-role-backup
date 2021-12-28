@@ -36,10 +36,6 @@
   with_items:
     - template: restic.env.j2
       dest: "{{ restic_service_envfile }}"
-    - template: restic-include.txt.j2
-      dest: "{{ restic_include_file }}"
-    - template: restic-exclude.txt.j2
-      dest: "{{ restic_exclude_file }}"
 
 - name: Copy restic scripts
   template:

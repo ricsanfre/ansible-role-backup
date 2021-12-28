@@ -15,11 +15,15 @@ echo "$(timestamp): restic-backup started" | tee -a $LOG
 echo "-------------------------------------------------------------------------------" | tee -a $LOG
 
 # Run Backups
-$RESTIC_WRAPPER backup \
---exclude-file $EXCLUDE \
---files-from $INCLUDE \
+{% for dir in restic_backups_dirs %}
+$RESTIC_WRAPPER backup {{ dir.path }} \
+{% if dir.exclude is defined %}
+{% for exclude in dir.exclude %}
+--exclude {{ exclude.pattern }} \
+{% endfor %}
+{% endif %}
 | tee -a $LOG
-
+{% endfor %}
 # Add timestamp
 echo "-------------------------------------------------------------------------------" | tee -a $LOG
 echo "$(timestamp): restic.sh finished" | tee -a $LOG
