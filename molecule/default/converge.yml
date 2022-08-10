@@ -1,0 +1,22 @@
+---
+
+- name: Converge | Configure backup
+  hosts: instance
+  become: true
+  gather_facts: true
+  vars:
+    restic_user: root
+    restic_group: root
+  pre_tasks:
+    - name: Create the repo directory
+      file:
+        path: "/restic-repo"
+        state: directory
+        owner: "{{ restic_user }}"
+        group: "{{ restic_group }}"
+        mode: 0750
+  roles:
+    - role: ricsanfre.backup
+      restic_repository: "/restic-repo"
+      restic_password: supers1cret0
+      gclone_install: false
