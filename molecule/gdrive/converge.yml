@@ -1,0 +1,12 @@
+---
+
+- name: Converge | Configure backup
+  hosts: instance
+  become: true
+  gather_facts: true
+  roles:
+    - role: ricsanfre.backup
+      restic_repository: "rclone:foo:bar"
+      restic_aws_access_key_id: restic
+      restic_aws_secret_access_key: supers1cret0
+      rclone_install: true
