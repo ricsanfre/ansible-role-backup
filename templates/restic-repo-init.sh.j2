@@ -16,9 +16,9 @@ check=`$RESTIC_WRAPPER cat config 2>/dev/null`
 
 if [ -z "$check" ]; then
   echo "Repo $RESTIC_REPOSITORY is not initilized. Initializing it...." | tee -a $LOG
-  $RESTIC_WRAPPER init | tee -a $LOG
+  $RESTIC_WRAPPER init 2>&1 | tee -a $LOG
 else
-  echo "Repo $RESTIC_REPOSITORY already initialized" | tee -a $LOG
+  echo "Repo $RESTIC_REPOSITORY already initialized"  | tee -a $LOG
 fi
 
 # Add timestamp
