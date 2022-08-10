@@ -10,3 +10,4 @@
       restic_aws_access_key_id: restic
       restic_aws_secret_access_key: supers1cret0
       rclone_install: true
+      rclone_configure: true

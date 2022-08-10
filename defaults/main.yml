@@ -66,6 +66,15 @@ restic_clean_systemd_timer_randomized_delay_sec: 0
 
 # rclone
 rclone_install: false
+rclone_configure: false
 
-# gclone path installation
+# rclone path installation
 rclone_path: /usr/bin/rclone
+rclone_config_dir: /.config/rclone
+# rclone_config_file
+rclone_config_file: |
+  [gdrive]
+  type = drive
+  scope = drive
+  service_account_file =
+  team_drive =
