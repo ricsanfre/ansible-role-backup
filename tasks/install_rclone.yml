@@ -1,0 +1,21 @@
+---
+
+- name: Get rclone installation script
+  get_url:
+    url: https://rclone.org/install.sh
+    dest: /tmp/rclone_install.sh
+    owner: "root"
+    group: "root"
+    mode: '0755'
+
+- name: Ensure unzip package is installed
+  package:
+    name: '{{ rclone_package_list | list }}'
+    state: 'present'
+    update_cache: true
+  register: pkg_install_result
+  until: pkg_install_result is success
+
+- name: Install gclone
+  command: "bash /tmp/rclone_install.sh"
+  changed_when: true

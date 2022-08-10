@@ -8,6 +8,16 @@
   include_tasks: install_restic.yml
   when: not restic_binary.stat.exists or restic_force_install
 
+- name: Check if rlcone is installed
+  stat:
+    path: '{{ rclone_path }}'
+  register: rclone_binary
+  when: rclone_install
+
+- name: Install gclone
+  include_tasks: install_rclone.yml
+  when: not rclone_binary.stat.exists and rclone_install
+
 - name: Configure restic backup
   include_tasks: configure_restic.yml
 

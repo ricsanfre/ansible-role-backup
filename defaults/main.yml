@@ -25,14 +25,13 @@ restic_group: root
 restic_repository: "s3:https://127.0.0.1:9090/restic"
 restic_aws_access_key_id: restic
 restic_aws_secret_access_key: supers1cret0
+restic_password: mysupers1cret0
 
 # Use CA SSL certificate to validate connection to S3 storage.
 # Needed when self-signed certificates or custom CA certificates are used
 restic_use_ca_cert: false
 # custom CA certificate content
 restic_ca_cert: ""
-
-restic_password: mysupers1cret0
 
 # restic backup directories
 restic_backups_dirs:
@@ -58,3 +57,9 @@ restic_backup_systemd_timer_randomized_delay_sec: 0
 # Restic check and purge timer configuration
 restic_clean_systemd_timer_on_calender: '*-*-* 06:00:00'
 restic_clean_systemd_timer_randomized_delay_sec: 0
+
+# rclone
+rclone_install: false
+
+# gclone path installation
+rclone_path: /usr/bin/rclone
