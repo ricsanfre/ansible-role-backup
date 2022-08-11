@@ -1,5 +1,5 @@
 ---
-- name: Create the Minio server systemd config
+- name: Create the restic server systemd config
   template:
     src: restic-backup.service.j2
     dest: "/etc/systemd/system/restic-backup.service"

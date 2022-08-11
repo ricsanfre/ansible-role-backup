@@ -1,8 +1,15 @@
-Ansible Role: Backup to S3 Storage Server using restic
+Ansible Role: Automate backup to different backends using restic
 =========
 
-This role install and configure [restic] (https://restic.net/) in a linux server using as storage backend a S3 object storage server (i.e. Minio)
-The backup procedure will be executed and scheduled using a systemd service and timer.
+This role install and configure [restic] (https://restic.net/) in a linux server using as storage backend any of the supported by restic (Local file system, SFTP server, REST Server, S3 object storage server (i.e. Minio), and cloud storage services (Google Cloud Storage, Microsoft Azure Blob, Amazon S3).
+
+Additional cloud storage backends, such as Google Drive, are supported through [rclone](https://rclone.org/) integration. rclone is also installed and configured by this role.
+
+The role install restic and rclone, configure the repository in the selected backend, configure the directories to backup and schedule backup tasks.
+
+The backup procedure is scheduled using a systemd service and timer (instead of cron)
+
+> Important NOTE: This role does not configure the reoisitory backend (Minio/AWS Server user credentials and buckets, Google Drive API access and service accout, etc.). Backend need to be configured before applying this role.
 
 Requirements
 ------------
@@ -38,17 +45,59 @@ Available variables are listed below along with default values (see `defaults\ma
   restic_etc_dir: /etc/minio
   minio_ca_dir: "{{ restic_etc_dir }}/ssl"
   ```
-  Restic backend S3 repository details (`restic_repository`), and access credentials (`restic_aws_access_key_id` and `restic_aws_secret_access_key`)
+- Restic repository configuration
+
+  Restic backend repository details (`restic_repository`) and repository passwod used for encryption (`restic_password`). 
   ```yml
-  restic_repository: "s3:https://127.0.0.1:9090/restic"
-  restic_aws_access_key_id: restic
-  restic_aws_secret_access_key: supers1cret0
-  ```
-  Restic respository password
-  ```yml
+  restic_repository: "/restic-repo"
   restic_password: mysupers1cret0
   ```
+  Restic backend additional environment variables (`restic_environment`). Needed for connecting to different backends. Check out [restic documentation: preparing new repo](https://restic.readthedocs.io/en/stable/030_preparing_a_new_repo.html) to see which environment variables are needed for each backend.
+
+  `restic_respository` name format depends on the repository type
   
+  As an example to connect to Minio S3 server, it is needed to configure the following 
+  ```yml
+  restic_repository: "s3:https://10.11.0.1:9091/restic"
+  restic_environment:
+    - name: AWS_ACCESS_KEY_ID
+      value: "restic"
+    - name: AWS_SECRET_ACCESS_KEY
+      value: "supers1cret0"
+  ```
+  and access credentials (`restic_aws_access_key_id` and `restic_aws_secret_access_key`)
+
+- Rclone installation and configuration
+
+  In case of selecting a rclone based repository. rclone need to be installed and optionally configured
+
+  Indicate whether rclone should be installed (`rclone_install`) and configure (`rclone_configure`)
+
+  ```yml
+  rclone_install: false
+  rclone_configure: false
+  ```
+  rclone configuration is done by creating automatically a rclone configuration file `$HOME/.config/rclone/rclone.conf` based on the content of `rclone_config_file`
+
+  This automatic configuration is optional, if `rclone_configuration` is set to false, then you need to manual configure rclone remote repository (`rclone config` command).
+
+  For example to configure restic to use Google Drive as backend repository the following configuration can be provided.
+  ```yml
+  restic_repository: "rclone:gdrive:backup"
+  rclone_install: true
+  rclone_configure: true
+  rclone_config_file: |
+    [gdrive]
+    type = drive
+    scope = drive
+    service_account_file = <path_to_service_account_file>
+    team_drive =
+  ```
+  > Google API service account file (json file) should be present in the server or uploaded to it before applying the role. See example playbook below.
+
+- Restic TLS configuration
+
+  In case of connecting to a backend through TLS, such as Minio S3 service, restic need to validate the credentials. CA certificate can be added during the installation so restic can validate the TLs communication.
   Whether to use CA SSL certificate to validate connection to S3 storage (`restic_use_ca_cert`) or not. Needed when self-signed certificates or custom CA certificates are used in S3 server. CA certificate content must be loaded into variable `restic_ca_cert`.
   ```yml
   restic_use_ca_cert: false
@@ -308,10 +357,12 @@ None
 Example Playbook
 ----------------
 
-The following playbook install restic, and schedule backup of `/etc`, `/var/log` and `/root` directories. As backend uses a S3 repository (`s3:https://10.11.0.1:9091/restic`) and to validate SSL certificates from S3 server installs a CA cert load from `certicates/CA.pem`.
+The following playbook install restic, and schedule backup of `/etc`, `/var/log` and `/root` directories.
+
+As backend uses a S3 repository (`s3:https://10.11.0.1:9091/restic`) and to validate SSL certificates from S3 server installs a CA cert load from `certicates/CA.pem`.
 
 ```yml
-- name: Converge | Configure backup
+- name: Configure backup
   hosts: server
   become: true
   gather_facts: true
@@ -334,6 +385,67 @@ The following playbook install restic, and schedule backup of `/etc`, `/var/log`
             - pattern: '.ignore'
 ```
 
+The configure restic to perform the backup of the same directories but using Google Drive as backend. 
+
+```yml
+
+- name: Configure backup
+  hosts: instance
+  become: true
+  gather_facts: true
+  vars:
+    - restic_user: "root"
+    - restic_group: "root"
+    - google_service_account: ""
+    - restic_user_home: ""
+  pre_tasks:
+    - name: Load service account json file
+      set_fact:
+        google_service_account: "{{ lookup('file','files/google_service_account.json') | from_json }}"
+    - name: Get Home directory of restic_user
+      getent:
+        database: passwd
+        key: "{{ restic_user }}"
+        split: ":"
+    - name: Set restic user home directory
+      set_fact:
+        restic_user_home: "{{ getent_passwd[restic_user][4] }}"
+    - name: Create gdrive config directory
+      file:
+        path: "{{ restic_user_home }}/.gdrive"
+        state: directory
+        owner: "{{ restic_user }}"
+        group: "{{ restic_group }}"
+        mode: 0750
+    - name: Copy service account json file to rclone config directory
+      copy:
+        dest: "{{ restic_user_home }}/.gdrive/google_service_account.json"
+        content: "{{ google_service_account | to_nice_json }}"
+        owner: "{{ restic_user }}"
+        group: "{{ restic_user }}"
+        mode: 0644
+  roles:
+    - role: ricsanfre.backup
+      restic_repository: "rclone:gdrive:backup"
+      restic_aws_access_key_id: restic
+      restic_aws_secret_access_key: supers1cret0
+      rclone_install: true
+      rclone_configure: true
+      rclone_config_file: |
+        [gdrive]
+        type = drive
+        scope = drive
+        service_account_file = {{ restic_user_home }}/.gdrive/google_service_account.json
+        team_drive =
+      restic_backups_dirs:
+        - path: '/etc'
+        - path: '/var/log'
+        - path: '/root'
+          exclude:
+            - pattern: '.cache'
+            - pattern: '.ignore
+```
+This playbook expects to find google's service account in json format in `files/google_service_account.json`
 
 License
 -------
@@ -345,9 +457,10 @@ Author Information
 
 Created by Ricardo Sanchez (ricsanfre) highly inspired by this [project](https://github.com/angristan/ansible-restic) by [angristan](https://github.com/angristan).
 
-Code completely refactored and updated to work properly with S3 repository (i.e. Minio) and with ARM architecture.
+Code completely refactored and updated to work properly with S3 repository (i.e. Minio) and with ARM architecture. Also added rclone's backends support.
 
 Changes and improvements:
 - Restic backup and purge activities are splitted into two different systemd services that can be scheduled independetly to avoid locking issues.
-- S3 backend issues solved: repo initialization  and the use of custom CA/selfsigned certificates in the communication.
+- S3 backend issues solved: repo initialization and the use of custom CA/selfsigned certificates in the communication.
 - Restic installation installation process is architecture agnostic (supporting x86 and ARM architectures). Original code supported only x86 architectures.
+- Adding support to rclone's backends

@@ -13,13 +13,13 @@ echo "$(timestamp): restic-repo-clean started" | tee -a $LOG
 echo "-------------------------------------------------------------------------------" | tee -a $LOG
 
 # Check repository for errors
-$RESTIC_WRAPPER check | tee -a $LOG
+$RESTIC_WRAPPER check 2>&1 | tee -a $LOG
 
 # Forget old snapshots
-$RESTIC_WRAPPER forget --keep-within {{ restic_forget_keep_within }} | tee -a $LOG
+$RESTIC_WRAPPER forget --keep-within {{ restic_forget_keep_within }} 2>&1 | tee -a $LOG
 
 # Prune
-$RESTIC_WRAPPER prune | tee -a $LOG
+$RESTIC_WRAPPER prune 2>&1 | tee -a $LOG
 
 # Add timestamp
 echo "-------------------------------------------------------------------------------" | tee -a $LOG

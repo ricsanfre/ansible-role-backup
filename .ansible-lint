@@ -1,3 +1,5 @@
 ---
 skip_list:
   - 'no-handler'
+  - 'fqcn-builtins'
+  - 'role-name'

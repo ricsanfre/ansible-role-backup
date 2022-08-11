@@ -1,0 +1,50 @@
+---
+
+- name: Converge | Configure backup
+  hosts: instance
+  become: true
+  gather_facts: true
+  vars:
+    - restic_user: "root"
+    - restic_group: "root"
+    - google_service_account: ""
+    - restic_user_home: ""
+  pre_tasks:
+    - name: Load service account json file
+      set_fact:
+        google_service_account: "{{ lookup('file','files/google_service_account.json') | from_json }}"
+    - name: Get Home directory of restic_user
+      getent:
+        database: passwd
+        key: "{{ restic_user }}"
+        split: ":"
+    - name: Set restic user home directory
+      set_fact:
+        restic_user_home: "{{ getent_passwd[restic_user][4] }}"
+    - name: Create gdrive config directory
+      file:
+        path: "{{ restic_user_home }}/.gdrive"
+        state: directory
+        owner: "{{ restic_user }}"
+        group: "{{ restic_group }}"
+        mode: 0750
+    - name: Copy service account json file to rclone config directory
+      copy:
+        dest: "{{ restic_user_home }}/.gdrive/google_service_account.json"
+        content: "{{ google_service_account | to_nice_json }}"
+        owner: "{{ restic_user }}"
+        group: "{{ restic_user }}"
+        mode: 0644
+  roles:
+    - role: ricsanfre.backup
+      restic_repository: "rclone:gdrive:backup"
+      restic_aws_access_key_id: restic
+      restic_aws_secret_access_key: supers1cret0
+      rclone_install: true
+      rclone_configure: true
+      rclone_config_file: |
+        [gdrive]
+        type = drive
+        scope = drive
+        service_account_file = {{ restic_user_home }}/.gdrive/google_service_account.json
+        team_drive =

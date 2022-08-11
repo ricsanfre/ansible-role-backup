@@ -22,7 +22,7 @@ $RESTIC_WRAPPER backup {{ dir.path }} \
 --exclude {{ exclude.pattern }} \
 {% endfor %}
 {% endif %}
-| tee -a $LOG
+2>&1 | tee -a $LOG
 {% endfor %}
 # Add timestamp
 echo "-------------------------------------------------------------------------------" | tee -a $LOG

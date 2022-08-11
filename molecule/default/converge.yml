@@ -1,62 +1,22 @@
 ---
-- name: Converge | Create Minio server
-  hosts: minio
+
+- name: Converge | Configure backup
+  hosts: instance
   become: true
   gather_facts: true
   vars:
-    server_hostname: minio.picluster.ricsanfre.com
-    ssl_key_size: 4096
-    ssl_certificate_provider: selfsigned
-    key_type: RSA
-    country_name: ES
-    email_address: admin@ricsanfre.com
-    organization_name: Ricsanfre
-
+    restic_user: root
+    restic_group: root
   pre_tasks:
-    - name: Generate custom CA
-      include_tasks: tasks/generate_custom_ca.yml
-      args:
-        apply:
-          delegate_to: localhost
-          become: false
-    - name: Generate customCA-signed SSL certificates for minio
-      include_tasks: tasks/generate_ca_signed_cert.yml
-      args:
-        apply:
-          delegate_to: localhost
-          become: false
-    - name: Load tls key and cert
-      set_fact:
-        minio_key: "{{ lookup('file','certificates/' + server_hostname + '.key') }}"
-        minio_cert: "{{ lookup('file','certificates/' + server_hostname + '.pem') }}"
-
-  roles:
-    - role: ricsanfre.minio
-      minio_root_user: "miniadmin"
-      minio_root_password: "supers1cret0"
-      minio_enable_tls: true
-      minio_validate_certificate: false
-      minio_buckets:
-        - name: restic
-          policy: read-write
-      minio_users:
-        - name: restic
-          password: supers1cret0
-          buckets_acl:
-            - name: restic
-              policy: read-write
-
-- name: Converge | Configure backup
-  hosts: server
-  become: true
-  gather_facts: true
-  pre_tasks:
-    - name: Load tls key and cert
-      set_fact:
-        restic_ca_cert: "{{ lookup('file','certificates/CA.pem') }}"
+    - name: Create the repo directory
+      file:
+        path: "/restic-repo"
+        state: directory
+        owner: "{{ restic_user }}"
+        group: "{{ restic_group }}"
+        mode: 0750
   roles:
     - role: ricsanfre.backup
-      restic_repository: "s3:https://10.11.0.1:9091/restic"
-      restic_aws_access_key_id: restic
-      restic_aws_secret_access_key: supers1cret0
-      restic_use_ca_cert: true
+      restic_repository: "/restic-repo"
+      restic_password: supers1cret0
+      gclone_install: false

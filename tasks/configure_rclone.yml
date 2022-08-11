@@ -1,0 +1,30 @@
+---
+
+- name: Get Home directory of restic_user
+  getent:
+    database: passwd
+    key: "{{ restic_user }}"
+    split: ":"
+
+- name: Set rclone config directory
+  set_fact:
+    rclone_conf_dir: "{{ getent_passwd[restic_user][4] + rclone_config_dir }}"
+
+- name: Create rclone config
+  file:
+    path: "{{ rclone_conf_dir }}"
+    state: directory
+    owner: "{{ restic_user }}"
+    group: "{{ restic_group }}"
+    mode: 0750
+
+- name: Copy rclone configuration
+  template:
+    src: "{{ item.template }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ restic_user }}"
+    group: "{{ restic_group }}"
+    mode: 0644
+  with_items:
+    - template: rclone.conf.j2
+      dest: "{{ rclone_conf_dir }}/rclone.conf"
