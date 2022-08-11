@@ -39,6 +39,16 @@ restic_use_ca_cert: false
 # custom CA certificate content
 restic_ca_cert: ""
 
+# rclone installation and configuration
+rclone_install: false
+rclone_configure: false
+
+# rclone path installation
+rclone_path: /usr/bin/rclone
+rclone_config_dir: /.config/rclone
+# rclone_config_file
+rclone_config_file: ""
+
 # restic backup directories
 restic_backups_dirs:
   - path: '/etc'
@@ -63,18 +73,3 @@ restic_backup_systemd_timer_randomized_delay_sec: 0
 # Restic check and purge timer configuration
 restic_clean_systemd_timer_on_calender: '*-*-* 06:00:00'
 restic_clean_systemd_timer_randomized_delay_sec: 0
-
-# rclone
-rclone_install: false
-rclone_configure: false
-
-# rclone path installation
-rclone_path: /usr/bin/rclone
-rclone_config_dir: /.config/rclone
-# rclone_config_file
-rclone_config_file: |
-  [gdrive]
-  type = drive
-  scope = drive
-  service_account_file =
-  team_drive =
