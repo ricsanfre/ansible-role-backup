@@ -201,7 +201,7 @@ After installation the backup process can be tested following this procedure:
 
 1) Trigger manually the backup process
 
-       systemctl start restic-backu
+       systemctl start restic-backup
     
    Or
 

@@ -9,6 +9,7 @@
     mode: 0750
   with_items:
     - "{{ restic_etc_dir }}"
+    - "{{ restic_etc_scripts_dir }}"
     - "{{ restic_ca_dir }}"
 
 - name: Copy custom CA cert
@@ -53,6 +54,15 @@
       dest: "{{ restic_etc_dir }}/restic-repo-clean.sh"
     - template: restic-wrapper.sh.j2
       dest: "{{ restic_etc_dir }}/restic-wrapper.sh"
+
+- name: Copy Pre-backup scripts
+  include_tasks:
+    file: copy_pre_backup_script.yml
+  loop: "{{ restic_pre_backup_script }}"
+  loop_control:
+    loop_var: prebackup_script
+  when:
+    - restic_pre_backup_script is defined
 
 - name: Initialize restic repo
   command:
