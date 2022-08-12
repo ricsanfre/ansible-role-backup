@@ -6,16 +6,28 @@ date "+%b %d %Y %T %Z"
 }
 
 RESTIC_WRAPPER={{ restic_etc_dir }}/restic-wrapper.sh
-EXCLUDE={{ restic_exclude_file }}
-INCLUDE={{ restic_include_file }}
 LOG={{ restic_log }}
+RESTIC_PREBACKUP_SCRIPTS_DIR={{ restic_etc_dir }}/scripts
 
+{% if restic_enable_pre_backup_scripts %}
+# Add timestamp
+echo "$(timestamp): pre-backup scripts execution started" | tee -a $LOG
+echo "-------------------------------------------------------------------------------" | tee -a $LOG
+
+{% for script in restic_pre_backup_script %}
+{% if script.name is defined %}
+echo "$(timestamp): Script {{ script.name }} execution started" | tee -a $LOG
+RESTIC_PREBACKUP_SCRIPTS_DIR/{{ script.name }}
+{% endif %}
+{% endfor %}
+{% endif %}
 # Add timestamp
 echo "$(timestamp): restic-backup started" | tee -a $LOG
 echo "-------------------------------------------------------------------------------" | tee -a $LOG
 
 # Run Backups
 {% for dir in restic_backups_dirs %}
+echo "$(timestamp):  Dir {{ dir.path }} backup started" | tee -a $LOG
 $RESTIC_WRAPPER backup {{ dir.path }} \
 {% if dir.exclude is defined %}
 {% for exclude in dir.exclude %}

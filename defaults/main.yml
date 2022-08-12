@@ -11,6 +11,8 @@ restic_path: /usr/local/bin/restic
 restic_etc_dir: /etc/restic
 # restic CA dir (--caCert option)
 restic_ca_dir: "{{ restic_etc_dir }}/ssl"
+# restic pre-backup scripts dir
+restic_etc_scripts_dir: "{{ restic_etc_dir }}/scripts"
 
 # restic service env file
 restic_service_envfile: "{{ restic_etc_dir }}/restic.conf"
@@ -57,6 +59,15 @@ restic_backups_dirs:
     exclude:
       - pattern: '.cache'
       - pattern: '.ignore'
+
+# restic pre-backup scripts
+restic_enable_pre_backup_scripts: false
+restic_pre_backup_script: []
+#  - name: myprebackup.sh
+#    content: |
+#       #!/bin/bash
+#       echo "This is a script executed before making the backup"
+
 
 # Restic command additional flags
 restic_flags: ""

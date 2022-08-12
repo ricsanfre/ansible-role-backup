@@ -20,3 +20,9 @@
       restic_repository: "/restic-repo"
       restic_password: supers1cret0
       gclone_install: false
+      restic_enable_pre_backup_scripts: true
+      restic_pre_backup_script:
+        - name: myprebackup.sh
+          content: |
+              #!/bin/bash
+              echo "This is a script executed before making the backup"
