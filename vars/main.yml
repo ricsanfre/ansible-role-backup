@@ -8,10 +8,6 @@ go_arch_map:
 
 go_arch: "{{ go_arch_map[ansible_architecture] | default(ansible_architecture) }}"
 
-restic_exclude_file: "{{ restic_etc_dir }}/restic-exclude.txt"
-
-restic_include_file: "{{ restic_etc_dir }}/restic-include.txt"
-
 rclone_package_list:
   - unzip
   - curl
