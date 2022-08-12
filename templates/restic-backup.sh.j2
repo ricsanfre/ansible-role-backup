@@ -17,7 +17,7 @@ echo "--------------------------------------------------------------------------
 {% for script in restic_pre_backup_script %}
 {% if script.name is defined %}
 echo "$(timestamp): Script {{ script.name }} execution started" | tee -a $LOG
-RESTIC_PREBACKUP_SCRIPTS_DIR/{{ script.name }}
+${RESTIC_PREBACKUP_SCRIPTS_DIR}/{{ script.name }} 2>&1 | tee -a $LOG
 {% endif %}
 {% endfor %}
 {% endif %}
