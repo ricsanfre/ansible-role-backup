@@ -111,6 +111,22 @@ Available variables are listed below along with default values (see `defaults\ma
       restic_ca_cert: "{{ lookup('file','certificates/CA.pem') }}"
   ```
 
+- Pre-backup scripts
+
+  In the scheduled backup, scripts can be executed just before restic backup commands. This is useful to schedule manual task like generating the backup files of database (i.e.: mysqldump command).
+
+  `restic_enable_pre_backup_scripts` enable the execution of those scripts
+  `restic_pre_backup_script` contains the list of scripts (name + content) to be executed
+  
+  This is an example of script to be executed before applying restic backup commands
+  ```yml
+  restic_enable_pre_backup_scripts: false
+  restic_pre_backup_script:
+    - name: myprebackup.sh
+      content: |
+        #!/bin/bash
+        echo "This is a script executed before making the backup"
+  ```
 - Directories list to be backed up
 
   `restic_backup_dirs` is a list of dictionaries. Each item of the list is a directory to  include in the backup
