@@ -3,7 +3,7 @@
   openssl_privatekey:
     path: certificates/CA.key
     size: "{{ ssl_key_size | int }}"
-    mode: 0644
+    mode: '0644'
   register: ca_key
 
 - name: create the CA CSR

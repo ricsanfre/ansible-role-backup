@@ -1,32 +1,32 @@
 ---
 - name: Check if restic is installed
-  stat:
+  ansible.builtin.stat:
     path: '{{ restic_path }}'
   register: restic_binary
 
 - name: Install restic
-  include_tasks: install_restic.yml
+  ansible.builtin.include_tasks: install_restic.yml
   when: not restic_binary.stat.exists or restic_force_install
 
 - name: Check if rclone is installed
-  stat:
+  ansible.builtin.stat:
     path: '{{ rclone_path }}'
   register: rclone_binary
 
 - name: Install rclone
-  include_tasks: install_rclone.yml
+  ansible.builtin.include_tasks: install_rclone.yml
   when: not rclone_binary.stat.exists and rclone_install
 
 - name: Configure rclone repo
-  include_tasks: configure_rclone.yml
+  ansible.builtin.include_tasks: configure_rclone.yml
   when: rclone_install and rclone_configure
 
 - name: Configure restic backup
-  include_tasks: configure_restic.yml
+  ansible.builtin.include_tasks: configure_restic.yml
 
 - name: Install restic systemd backup service
-  include_tasks: install_restic_backup_service.yml
+  ansible.builtin.include_tasks: install_restic_backup_service.yml
 
 - name: Install restic systemd clean service
-  include_tasks: install_restic_clean_service.yml
+  ansible.builtin.include_tasks: install_restic_clean_service.yml
   when: restic_clean_service

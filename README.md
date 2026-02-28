@@ -370,6 +370,54 @@ Dependencies
 
 None
 
+Development environment (uv)
+----------------------------
+
+You can use [uv](https://docs.astral.sh/uv/) to create and manage a local Python virtual environment with all tooling required for this role:
+
+- ansible
+- molecule (docker driver/plugin)
+- ansible-lint
+- yamllint
+
+
+
+Setup:
+
+```shell
+uv sync
+```
+
+Run tools through `uv`:
+
+```shell
+# Ansible
+uv run ansible --version
+
+# Linting
+uv run ansible-lint .
+uv run yamllint .
+
+# Molecule (Docker must be available and running)
+uv run molecule test -s default
+uv run molecule test -s gdrive
+uv run molecule test -s minio
+```
+
+You can also use `Makefile` shortcuts:
+
+```shell
+make sync
+make lint
+make molecule SCENARIO=minio
+```
+
+Optionally activate the environment:
+
+```shell
+source .venv/bin/activate
+```
+
 Example Playbook
 ----------------
 

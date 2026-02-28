@@ -4,7 +4,7 @@
     path: "certificates/{{ server_hostname }}.key"
     size: "{{ ssl_key_size | int }}"
     type: "{{ key_type }}"
-    mode: 0644
+    mode: '0644'
 
 - name: Create CSR
   openssl_csr:
@@ -14,7 +14,7 @@
     organization_name: "{{ organization_name }}"
     email_address: "{{ email_address }}"
     common_name: "{{ server_hostname }}"
-    subject_alt_name: "DNS:{{ server_hostname }},IP:{{ ansible_default_ipv4.address }}"
+    subject_alt_name: "DNS:{{ server_hostname }},IP:{{ ansible_facts['default_ipv4']['address'] }}"
 
 - name: CA signed CSR
   openssl_certificate:

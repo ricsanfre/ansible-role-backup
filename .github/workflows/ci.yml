@@ -2,11 +2,38 @@
 name: CI
 'on':
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    paths:
+      - 'defaults/**'
+      - 'handlers/**'
+      - 'meta/**'
+      - 'molecule/**'
+      - 'tasks/**'
+      - 'templates/**'
+      - 'vars/**'
+      - '*.yml'
+      - '*.yaml'
   push:
     branches:
       - master
+      - main
+    paths:
+      - 'defaults/**'
+      - 'handlers/**'
+      - 'meta/**'
+      - 'molecule/**'
+      - 'tasks/**'
+      - 'templates/**'
+      - 'vars/**'
+      - '*.yml'
+      - '*.yaml'
   schedule:
     - cron: "30 7 * * 3"
+  workflow_dispatch:
 
 defaults:
   run:
@@ -19,12 +46,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the codebase.
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           path: 'ricsanfre.backup'
 
       - name: Set up Python 3.
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v6
         with:
           python-version: '3.x'
 
@@ -34,25 +61,30 @@ jobs:
       - name: Lint code.
         run: |
           yamllint .
+          ansible-lint .
   molecule:
-    name: Molecule
+    name: Molecule (${{ matrix.scenario }} / ${{ matrix.distro.os }}-${{ matrix.distro.release }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        scenario:
+          - default
+          - gdrive
+          - minio
         distro:
           - os: ubuntu
             release: 22.04
           - os: ubuntu
-            release: 20.04
+            release: 24.04
 
     steps:
       - name: Check out the codebase.
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           path: 'ricsanfre.backup'
 
       - name: Set up Python 3.
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v6
         with:
           python-version: '3.x'
 
@@ -60,7 +92,7 @@ jobs:
         run: pip3 install ansible molecule molecule-plugins[docker] docker yamllint ansible-lint
 
       - name: Run Molecule tests.
-        run: molecule test
+        run: molecule test -s "${{ matrix.scenario }}"
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'

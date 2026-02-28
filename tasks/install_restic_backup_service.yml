@@ -1,15 +1,15 @@
 ---
 - name: Create the restic server systemd config
-  template:
+  ansible.builtin.template:
     src: restic-backup.service.j2
     dest: "/etc/systemd/system/restic-backup.service"
     owner: root
     group: root
-    mode: 0644
+    mode: '0644'
   notify: systemd reload
 
 - name: Add systemd timer for restic
-  template:
+  ansible.builtin.template:
     src: restic-backup.timer.j2
     dest: /etc/systemd/system/restic-backup.timer
     owner: root
@@ -18,7 +18,7 @@
   notify: systemd reload
 
 - name: Enable and start restic timer
-  systemd:
+  ansible.builtin.systemd:
     name: restic-backup.timer
     enabled: true
     state: started
