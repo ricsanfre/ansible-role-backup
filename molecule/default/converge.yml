@@ -14,7 +14,7 @@
         state: directory
         owner: "{{ restic_user }}"
         group: "{{ restic_group }}"
-        mode: 0750
+        mode: '0750'
   roles:
     - role: ricsanfre.backup
       restic_repository: "/restic-repo"

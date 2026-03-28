@@ -1,30 +1,30 @@
 ---
 
 - name: Ensure required packages are installed
-  package:
+  ansible.builtin.package:
     name: bzip2
     state: 'present'
     update_cache: true
 
 - name: Download restic
-  get_url:
+  ansible.builtin.get_url:
     url: 'https://github.com/restic/restic/releases/download/v{{ restic_version }}/restic_{{ restic_version }}_linux_{{ go_arch }}.bz2'
     dest: '/tmp/restic_{{ restic_version }}_linux_{{ go_arch }}.bz2'
-    mode: 0644
+    mode: '0644'
 
 - name: Extract restic
-  command: 'bzip2 -d /tmp/restic_{{ restic_version }}_linux_{{ go_arch }}.bz2'
+  ansible.builtin.command: 'bzip2 -d /tmp/restic_{{ restic_version }}_linux_{{ go_arch }}.bz2'
   args:
     creates: '/tmp/restic_{{ restic_version }}_linux_{{ go_arch }}'
 
 - name: Install restic
-  copy:
+  ansible.builtin.copy:
     remote_src: true
     src: '/tmp/restic_{{ restic_version }}_linux_{{ go_arch }}'
     dest: "{{ restic_path }}"
-    mode: 0755
+    mode: '0755'
 
 - name: Remove downloaded file
-  file:
+  ansible.builtin.file:
     path: '/tmp/restic_{{ restic_version }}_linux_{{ go_arch }}'
     state: absent

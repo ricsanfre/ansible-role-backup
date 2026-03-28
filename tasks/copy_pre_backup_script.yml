@@ -1,12 +1,12 @@
 ---
-- name: test prebackup_script
+- name: Test prebackup_script
   ansible.builtin.assert:
     that:
       - prebackup_script.name is defined
     quiet: true
 
-- name: copy prebackup script
-  copy:
+- name: Copy prebackup script
+  ansible.builtin.copy:
     dest: "{{ restic_etc_scripts_dir }}/{{ prebackup_script.name }}"
     content: "{{ prebackup_script.content }}"
-    mode: 0755
+    mode: '0755'

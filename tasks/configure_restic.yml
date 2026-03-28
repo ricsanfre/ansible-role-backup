@@ -1,50 +1,50 @@
 ---
 
 - name: Create restic directories
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     owner: "{{ restic_user }}"
     group: "{{ restic_group }}"
-    mode: 0750
+    mode: '0750'
   with_items:
     - "{{ restic_etc_dir }}"
     - "{{ restic_etc_scripts_dir }}"
     - "{{ restic_ca_dir }}"
 
 - name: Copy custom CA cert
-  copy:
+  ansible.builtin.copy:
     dest: "{{ restic_ca_dir }}/CA.pem"
     content: "{{ restic_ca_cert }}"
     owner: "{{ restic_user }}"
     group: "{{ restic_group }}"
-    mode: 0644
+    mode: '0644'
   become: true
   when: restic_use_ca_cert
 
-- name: set restic commands flags
-  set_fact:
-    restic_flags: "{{ restic_flags  + ' --cacert ' + restic_ca_dir + '/CA.pem' }}"
+- name: Set restic commands flags
+  ansible.builtin.set_fact:
+    restic_flags: "{{ restic_flags + ' --cacert ' + restic_ca_dir + '/CA.pem' }}"
   when: restic_use_ca_cert
 
 - name: Copy restic configuration
-  template:
+  ansible.builtin.template:
     src: "{{ item.template }}"
     dest: "{{ item.dest }}"
     owner: "{{ restic_user }}"
     group: "{{ restic_group }}"
-    mode: 0644
+    mode: '0644'
   with_items:
     - template: restic.env.j2
       dest: "{{ restic_service_envfile }}"
 
 - name: Copy restic scripts
-  template:
+  ansible.builtin.template:
     src: "{{ item.template }}"
     dest: "{{ item.dest }}"
     owner: "{{ restic_user }}"
     group: "{{ restic_group }}"
-    mode: 0755
+    mode: '0755'
   with_items:
     - template: restic-repo-init.sh.j2
       dest: "{{ restic_etc_dir }}/restic-repo-init.sh"
@@ -56,7 +56,7 @@
       dest: "{{ restic_etc_dir }}/restic-wrapper.sh"
 
 - name: Copy Pre-backup scripts
-  include_tasks:
+  ansible.builtin.include_tasks:
     file: copy_pre_backup_script.yml
   loop: "{{ restic_pre_backup_script }}"
   loop_control:
@@ -65,7 +65,7 @@
     - restic_pre_backup_script is defined
 
 - name: Initialize restic repo
-  command:
+  ansible.builtin.command:
     cmd: "{{ restic_etc_dir }}/restic-repo-init.sh"
   run_once: true
   register: restic_init
