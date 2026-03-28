@@ -83,16 +83,14 @@ jobs:
         with:
           path: 'ricsanfre.backup'
 
-      - name: Set up Python 3.
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.x'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
 
-      - name: Install test dependencies.
-        run: pip3 install ansible molecule molecule-plugins[docker] docker yamllint ansible-lint
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
 
       - name: Run Molecule tests.
-        run: molecule test -s "${{ matrix.scenario }}"
+        run: uv run molecule test -s "${{ matrix.scenario }}"
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
