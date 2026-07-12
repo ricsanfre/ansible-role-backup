@@ -78,4 +78,4 @@
   register: restic_init
   changed_when:
     - _restic_repo_check.rc != 0
-    - '"Initializing it...." in restic_init.stdout'
+    - '"created restic repository" in restic_init.stdout'
