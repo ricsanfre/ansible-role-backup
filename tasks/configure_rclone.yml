@@ -8,7 +8,7 @@
 
 - name: Set rclone config directory
   ansible.builtin.set_fact:
-    rclone_conf_dir: "{{ getent_passwd[restic_user][4] + rclone_config_dir }}"
+    rclone_conf_dir: "{{ ansible_facts['getent_passwd'][restic_user][4] + rclone_config_dir }}"
 
 - name: Create rclone config
   ansible.builtin.file:

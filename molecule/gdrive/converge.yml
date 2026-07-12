@@ -20,7 +20,7 @@
         split: ":"
     - name: Set restic user home directory
       set_fact:
-        restic_user_home: "{{ getent_passwd[restic_user][4] }}"
+        restic_user_home: "{{ ansible_facts['getent_passwd'][restic_user][4] }}"
     - name: Create gdrive config directory
       file:
         path: "{{ restic_user_home }}/.gdrive"
