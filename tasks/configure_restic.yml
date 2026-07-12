@@ -64,9 +64,18 @@
   when:
     - restic_pre_backup_script is defined
 
+- name: Check if restic repo already exists
+  ansible.builtin.command:
+    cmd: "{{ restic_etc_dir }}/restic-wrapper.sh cat config"
+  register: _restic_repo_check
+  changed_when: false
+  failed_when: false
+
 - name: Initialize restic repo
   ansible.builtin.command:
     cmd: "{{ restic_etc_dir }}/restic-repo-init.sh"
   run_once: true
   register: restic_init
-  changed_when: '"Initializing it...." in restic_init.stdout'
+  changed_when:
+    - _restic_repo_check.rc != 0
+    - '"Initializing it...." in restic_init.stdout'
