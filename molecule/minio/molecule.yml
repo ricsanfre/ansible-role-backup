@@ -54,8 +54,7 @@ provisioner:
   name: ansible
   playbooks:
     converge: ${MOLECULE_PLAYBOOK:-converge.yml}
-  config_options:
-    defaults:
-      roles_path: "../../roles:roles:~/.ansible/roles:/usr/share/ansible/roles:/etc/ansible/roles"
+  env:
+    ANSIBLE_ROLES_PATH: ../../roles
 verifier:
   name: ansible
