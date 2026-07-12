@@ -5,10 +5,10 @@
   become: true
   gather_facts: true
   vars:
-    - restic_user: "root"
-    - restic_group: "root"
-    - google_service_account: ""
-    - restic_user_home: ""
+    restic_user: "root"
+    restic_group: "root"
+    google_service_account: ""
+    restic_user_home: ""
   pre_tasks:
     - name: Load service account json file
       set_fact:
