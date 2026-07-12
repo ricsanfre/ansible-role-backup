@@ -6,7 +6,7 @@
     owner: root
     group: root
     mode: '0644'
-  notify: systemd reload
+  notify: Systemd reload
 
 - name: Add systemd timer for restic-clean
   ansible.builtin.template:
@@ -15,7 +15,7 @@
     owner: root
     group: root
     mode: '0644'
-  notify: systemd reload
+  notify: Systemd reload
 
 - name: Enable and start restic timer
   ansible.builtin.systemd:
