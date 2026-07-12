@@ -79,8 +79,6 @@ jobs:
     steps:
       - name: Check out the codebase.
         uses: actions/checkout@v6
-        with:
-          path: 'ricsanfre.backup'
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
