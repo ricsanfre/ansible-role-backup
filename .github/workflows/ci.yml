@@ -35,10 +35,6 @@ name: CI
     - cron: "30 7 * * 3"
   workflow_dispatch:
 
-defaults:
-  run:
-    working-directory: 'ricsanfre.backup'
-
 jobs:
 
   lint:
