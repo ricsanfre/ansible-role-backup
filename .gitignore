@@ -1,1 +1,4 @@
 roles
+molecule/*/certificates/*.key
+molecule/*/certificates/*.csr
+molecule/*/certificates/*.pem
